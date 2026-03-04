@@ -1,0 +1,29 @@
+version: 2
+
+builds:
+  - binary: dotclaude
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      - darwin
+    goarch:
+      - amd64
+      - arm64
+    ldflags:
+      - -s -w -X main.version={{.Version}}
+
+archives:
+  - formats:
+      - tar.gz
+
+homebrew_casks:
+  - name: dotclaude
+    binaries:
+      - dotclaude
+    homepage: https://github.com/daniel7an/dotclaude
+    description: Sync your Claude Code configuration across machines
+    repository:
+      owner: daniel7an
+      name: homebrew-tap
+      token: "{{ .Env.HOMEBREW_TAP_GITHUB_TOKEN }}"
