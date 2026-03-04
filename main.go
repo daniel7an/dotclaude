@@ -18,6 +18,8 @@ func main() {
 	switch os.Args[1] {
 	case "--version", "-v":
 		fmt.Println("dotclaude " + version)
+	case "--help", "-h", "help":
+		printUsage()
 	case "init":
 		if len(os.Args) < 3 {
 			fatal("Usage: dotclaude init <repo-url>")

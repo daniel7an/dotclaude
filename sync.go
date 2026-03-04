@@ -20,9 +20,7 @@ var syncFiles = []string{
 }
 
 // Glob patterns to sync
-var syncGlobs = []string{
-	"plans/*.md",
-}
+var syncGlobs = []string{}
 
 // Never sync these (defense in depth)
 var neverSync = []string{
@@ -67,20 +65,6 @@ func collectPushFiles(claudeDir, repoDir string) []FilePair {
 		}
 	}
 
-	// Project memories
-	mappings := discoverProjects(claudeDir)
-	for _, m := range mappings {
-		srcMem := filepath.Join(claudeDir, "projects", m.EncodedDir, "memory", "MEMORY.md")
-		if fileExists(srcMem) {
-			rel := filepath.Join("projects", m.Alias, "memory", "MEMORY.md")
-			pairs = append(pairs, FilePair{
-				Src:     srcMem,
-				Dst:     filepath.Join(repoDir, rel),
-				RelPath: rel,
-			})
-		}
-	}
-
 	return filterNeverSync(pairs)
 }
 
@@ -115,35 +99,6 @@ func collectPullFiles(claudeDir, repoDir string) []FilePair {
 		}
 	}
 
-	// Project memories — find alias dirs in repo, map to local encoded dirs
-	projectsInRepo := filepath.Join(repoDir, "projects")
-	if dirExists(projectsInRepo) {
-		entries, _ := os.ReadDir(projectsInRepo)
-		for _, e := range entries {
-			if !e.IsDir() {
-				continue
-			}
-			alias := e.Name()
-			memSrc := filepath.Join(projectsInRepo, alias, "memory", "MEMORY.md")
-			if !fileExists(memSrc) {
-				continue
-			}
-
-			// Find local encoded dir for this alias
-			encodedDir := findEncodedDirForAlias(claudeDir, alias)
-			if encodedDir == "" {
-				fmt.Fprintf(os.Stderr, "Warning: no local project found for alias %q, skipping\n", alias)
-				continue
-			}
-			rel := filepath.Join("projects", alias, "memory", "MEMORY.md")
-			pairs = append(pairs, FilePair{
-				Src:     memSrc,
-				Dst:     filepath.Join(claudeDir, "projects", encodedDir, "memory", "MEMORY.md"),
-				RelPath: rel,
-			})
-		}
-	}
-
 	return filterNeverSync(pairs)
 }
 
@@ -164,22 +119,6 @@ func collectRepoFiles(repoDir string) map[string]string {
 			rel, _ := filepath.Rel(repoDir, m)
 			if !isNeverSync(rel) {
 				files[rel] = checksumFile(m)
-			}
-		}
-	}
-
-	// Project memories in repo
-	projectsInRepo := filepath.Join(repoDir, "projects")
-	if dirExists(projectsInRepo) {
-		entries, _ := os.ReadDir(projectsInRepo)
-		for _, e := range entries {
-			if !e.IsDir() {
-				continue
-			}
-			mem := filepath.Join(projectsInRepo, e.Name(), "memory", "MEMORY.md")
-			if fileExists(mem) {
-				rel := filepath.Join("projects", e.Name(), "memory", "MEMORY.md")
-				files[rel] = checksumFile(mem)
 			}
 		}
 	}
@@ -205,16 +144,6 @@ func collectLocalFiles(claudeDir string) map[string]string {
 			if !isNeverSync(rel) {
 				files[rel] = checksumFile(m)
 			}
-		}
-	}
-
-	// Project memories — use alias as key
-	mappings := discoverProjects(claudeDir)
-	for _, m := range mappings {
-		srcMem := filepath.Join(claudeDir, "projects", m.EncodedDir, "memory", "MEMORY.md")
-		if fileExists(srcMem) {
-			rel := filepath.Join("projects", m.Alias, "memory", "MEMORY.md")
-			files[rel] = checksumFile(srcMem)
 		}
 	}
 
